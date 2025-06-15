@@ -6,63 +6,72 @@ def get_user_input():
     service_rate = float(input("Enter the service rate (μ): "))
     return arrival_rate, service_rate
 
-def mm1():
-    arrival_rate, service_rate = get_user_input()
 
+def mm1(arrival_rate, service_rate):
     if arrival_rate >= service_rate:
-        print("Warning: Arrival rate must be less than service rate for a stable system.")
-        return
+        return {"Error": "System is unstable (λ ≥ μ)"}
 
     rho = arrival_rate / service_rate
     L = rho / (1 - rho)
+    Lq = rho ** 2 / (1 - rho)
     W = 1 / (service_rate - arrival_rate)
+    Wq = arrival_rate / (service_rate * (service_rate - arrival_rate))
 
-    print("\n--- M/M/1 Results ---")
-    print(f"System Utilization (ρ): {rho:.3f}")
-    print(f"Average number in system (L): {L:.3f}")
-    print(f"Average time in system (W): {W:.3f}")
+    return {
+        "Utilization (ρ)": rho,
+        "Avg # in System (L)": L,
+        "Avg # in Queue (Lq)": Lq,
+        "Avg Time in System (W)": W,
+        "Avg Time in Queue (Wq)": Wq
+    }
 
-def mmc():
-    arrival_rate, service_rate = get_user_input()
-    c = int(input("Enter number of servers (c): "))
+
+def mmc(arrival_rate, service_rate, c):
+    from math import factorial
+
+    if arrival_rate >= service_rate * c:
+        return {"Error": "System is unstable (λ ≥ cμ)"}
 
     rho = arrival_rate / (c * service_rate)
+    a = arrival_rate / service_rate
 
-    if rho >= 1:
-        print("Warning: System is unstable (ρ ≥ 1).")
-        return
+    # Compute P0 (probability of zero customers in system)
+    def calc_p0():
+        sum_terms = sum([(a ** n) / factorial(n) for n in range(c)])
+        last_term = ((a ** c) / (factorial(c) * (1 - rho)))
+        return 1 / (sum_terms + last_term)
 
-    sum_terms = sum([(arrival_rate / service_rate) ** n / math.factorial(n) for n in range(c)])
-    last_term = ((arrival_rate / service_rate) ** c) / (math.factorial(c) * (1 - rho))
-    p0 = 1 / (sum_terms + last_term)
+    p0 = calc_p0()
 
-    lq = (p0 * ((arrival_rate / service_rate) ** c) * rho) / (math.factorial(c) * ((1 - rho) ** 2))
-    ls = lq + (arrival_rate / service_rate)
-    wq = lq / arrival_rate
-    ws = wq + 1 / service_rate
+    # Probability that a customer has to wait
+    pw = ((a ** c) * p0) / (factorial(c) * (1 - rho))
 
-    print("\n--- M/M/c Results ---")
-    print(f"Utilization (ρ): {rho:.3f}")
-    print(f"P0 (zero in system): {p0:.3f}")
-    print(f"Average number in queue (Lq): {lq:.3f}")
-    print(f"Average number in system (Ls): {ls:.3f}")
-    print(f"Average waiting time in queue (Wq): {wq:.3f}")
-    print(f"Average time in system (Ws): {ws:.3f}")
+    Lq = pw * rho / (1 - rho) * c
+    L = Lq + a
+    Wq = Lq / arrival_rate
+    W = Wq + 1 / service_rate
 
-def main():
-    print("Select the Queue Model:")
-    print("1. M/M/1")
-    print("2. M/M/c")
-
-    choice = input("Enter your choice (1 or 2): ")
-
-    if choice == "1":
-        mm1()
-    elif choice == "2":
-        mmc()
-    else:
-        print("Invalid choice. Please enter 1 or 2.")
-
+    return {
+        "Utilization (ρ)": rho,
+        "Probability Wait (Pw)": pw,
+        "Avg # in System (L)": L,
+        "Avg # in Queue (Lq)": Lq,
+        "Avg Time in System (W)": W,
+        "Avg Time in Queue (Wq)": Wq
+    }
 if __name__ == "__main__":
-    main()
+    arrival_rate, service_rate = get_user_input()
 
+    model = input("Enter model type (M/M/1 or M/M/c): ").strip().lower()
+
+    if model == "m/m/1":
+        result = mm1(arrival_rate, service_rate)
+    elif model == "m/m/c":
+        c = int(input("Enter number of servers (c): "))
+        result = mmc(arrival_rate, service_rate, c)
+    else:
+        result = {"Error": "Invalid model type."}
+
+    print("\n--- Simulation Results ---")
+    for key, value in result.items():
+        print(f"{key}: {value}")
