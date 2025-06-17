@@ -1,11 +1,7 @@
+# queueing_theory.py
+
 import math
-
-def get_user_input():
-    print("Welcome to the Queueing Simulator!")
-    arrival_rate = float(input("Enter the arrival rate (λ): "))
-    service_rate = float(input("Enter the service rate (μ): "))
-    return arrival_rate, service_rate
-
+from math import factorial
 
 def mm1(arrival_rate, service_rate):
     if arrival_rate >= service_rate:
@@ -25,28 +21,21 @@ def mm1(arrival_rate, service_rate):
         "Avg Time in Queue (Wq)": Wq
     }
 
-
 def mmc(arrival_rate, service_rate, c):
-    from math import factorial
-
     if arrival_rate >= service_rate * c:
         return {"Error": "System is unstable (λ ≥ cμ)"}
 
     rho = arrival_rate / (c * service_rate)
     a = arrival_rate / service_rate
 
-    # Compute P0 (probability of zero customers in system)
     def calc_p0():
-        sum_terms = sum([(a ** n) / factorial(n) for n in range(c)])
-        last_term = ((a ** c) / (factorial(c) * (1 - rho)))
+        sum_terms = sum((a ** n) / factorial(n) for n in range(c))
+        last_term = (a ** c) / (factorial(c) * (1 - rho))
         return 1 / (sum_terms + last_term)
 
     p0 = calc_p0()
-
-    # Probability that a customer has to wait
     pw = ((a ** c) * p0) / (factorial(c) * (1 - rho))
-
-    Lq = pw * rho / (1 - rho) * c
+    Lq = pw * rho * c / (1 - rho)
     L = Lq + a
     Wq = Lq / arrival_rate
     W = Wq + 1 / service_rate
@@ -59,19 +48,3 @@ def mmc(arrival_rate, service_rate, c):
         "Avg Time in System (W)": W,
         "Avg Time in Queue (Wq)": Wq
     }
-if __name__ == "__main__":
-    arrival_rate, service_rate = get_user_input()
-
-    model = input("Enter model type (M/M/1 or M/M/c): ").strip().lower()
-
-    if model == "m/m/1":
-        result = mm1(arrival_rate, service_rate)
-    elif model == "m/m/c":
-        c = int(input("Enter number of servers (c): "))
-        result = mmc(arrival_rate, service_rate, c)
-    else:
-        result = {"Error": "Invalid model type."}
-
-    print("\n--- Simulation Results ---")
-    for key, value in result.items():
-        print(f"{key}: {value}")
